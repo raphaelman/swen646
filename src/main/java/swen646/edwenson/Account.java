@@ -79,7 +79,7 @@ public class Account {
         return reservation;
     }
 
-    @Override
+    /*@Override
     public String toString() {
         return "{" +
                 "\"accNum\":\"" + accNum + "\"" +
@@ -88,5 +88,5 @@ public class Account {
                 ",\"phone\":\"" + phone + "\"" +
                 ",\"reservation\":\"" + reservation.stream().map(Reservation::getResvNum)
                 .collect(Collectors.toList()) + "\"}";
-    }
+    }*/
 }

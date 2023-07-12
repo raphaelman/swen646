@@ -8,7 +8,9 @@ import swen646.edwenson.exception.IllegalOperationException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,16 +18,18 @@ import java.util.stream.Collectors;
 public class Manager {
 
     private ArrayList<Account> account;
-    private ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final Scanner userInput = new Scanner(System.in);
 
     public Manager() {
+        this.account = new ArrayList<>();
     }
 
     public Manager(ArrayList<Account> account) {
         this.account = account;
     }
 
-    private Account loadAcc(File accountFilePath) throws IOException {
+    private Account convertAcc(File accountFilePath) throws IOException {
         return mapper.readValue(accountFilePath, Account.class);
     }
 
@@ -53,32 +57,96 @@ public class Manager {
         return resv;
     }
 
+    private String dynamicMenuStringEntry(List<String> menuOptions) {
+        menuOptions.forEach(System.out::println);
+        userInput.reset();
+        return userInput.nextLine();
+    }
+
+    private int dynamicMenuIntEntry(List<String> menuOptions) {
+        menuOptions.forEach(System.out::println);
+        userInput.reset();
+        return userInput.nextInt();
+    }
+
     /**
      * This method will load and create objects from data stored in files
      */
     public void loadAccAndResv() throws IOException {
-        List<Path> dataFolders = Files.list(Path.of(Manager.DATA_LOCATION))
+        String dataLocation = dynamicMenuStringEntry(
+                List.of("Please provide Account Data path")
+        );
+
+        loadDataFromFile(dataLocation);
+    }
+
+//    /home/eraphael/study/data
+//    A123456789
+
+    private void loadDataFromFile(String dataLocation) throws IOException {
+        Path mainPath = Path.of(dataLocation);
+        System.out.println("dataLocation = " + mainPath);
+        if(!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
+        }
+        List<Path> dataFolders = Files.list(mainPath)
                 .filter(p -> p.getFileName().toString().startsWith("A"))
                 .collect(Collectors.toList());
         if (dataFolders.isEmpty()) {
-            System.out.println("No Account data folder found at:-> "+ Manager.DATA_LOCATION);
+            System.out.println("No Account data folder found at:-> "+ dataLocation);
         } else {
-            dataFolders.forEach(p -> {
-                System.out.println("Found account folder: " + p);
-                if (!p.getFileName().toString().startsWith("A")) {
-                    try {
-                        Account acc = loadAcc(new File(p.toString(), "acc-" + p.getFileName() + ".json"));
-                        System.out.println(acc);
-                        // TODO need to complete account serialization into list of String
-                        addAccount(acc);
-                        addReservation(retrieveReservation(p));
-                    } catch (FileNotFoundException fnfe) {
-                        throw new IllegalLoadException("Account file " + p + "not found in the specified location", fnfe);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+            int option = dynamicMenuIntEntry(Arrays.asList(
+                    "Load Account Data Sub-menu",
+                    "1 - Load One Specific Account",
+                    "2 - Load All Account")
+            );
+
+            if (option == 1) {
+                String accountNum = dynamicMenuStringEntry(
+                        List.of("To Load One Specific Account provide Account number below")
+                );
+
+                loadSingleAccount(mainPath, accountNum);
+            } else if (option == 2) {
+                loadAllAccount(dataLocation, dataFolders);
+            } else {
+                throw new IllegalArgumentException("Wrong entry for this level");
+            }
+        }
+    }
+
+    private void loadAllAccount(String dataLocation, List<Path> dataFolders) {
+        System.out.println("Loading data from:-> "+ dataLocation);
+        dataFolders.forEach(p -> {
+            System.out.println("Found account folder: " + p);
+            System.out.println("Found out " + p.getFileName());
+            if (p.getFileName().toString().startsWith("A")) {
+                try {
+                    Account acc = convertAcc(new File(p.toString(), "acc-" + p.getFileName()+ ".json"));
+                    System.out.println(acc.getAccNum());
+                    // TODO need to complete account serialization into list of String for Reser or Jackson Mapper
+                    addAccount(acc);
+                    addReservation(retrieveReservation(p));
+                } catch (FileNotFoundException fnfe) {
+                    throw new IllegalLoadException("Account file " + p + "not found in the specified location", fnfe);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
-            });
+            }
+        });
+    }
+
+    private void loadSingleAccount(Path dataHome, String accNumber) {
+        try {
+            Account acc = convertAcc(new File(Path.of(dataHome.toString(), accNumber).toString(), "acc-" + accNumber + ".json"));
+            System.out.println(acc);
+            // TODO need to complete account serialization into list of String for Reser or Jackson Mapper
+            addAccount(acc);
+            addReservation(retrieveReservation(dataHome));
+        } catch (FileNotFoundException fnfe) {
+            throw new IllegalLoadException("Account file " + dataHome + " not found in the specified location", fnfe);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -110,6 +178,7 @@ public class Manager {
      */
     public void addAccount(Account account) throws DuplicateObjectException, IllegalStateException {
         if (Objects.nonNull(account)) {
+            System.out.println(account.getAccNum());
             if (getAccountByNum(account.getAccNum()).isEmpty()) {
                 this.account.add(account);
             } else {
