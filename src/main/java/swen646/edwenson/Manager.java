@@ -19,7 +19,6 @@ public class Manager {
 
     private ArrayList<Account> account;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final Scanner userInput = new Scanner(System.in);
 
     public Manager() {
         this.account = new ArrayList<>();
@@ -58,15 +57,16 @@ public class Manager {
     }
 
     private String dynamicMenuStringEntry(List<String> menuOptions) {
+        Scanner userInput = new Scanner(System.in);
         menuOptions.forEach(System.out::println);
-        userInput.reset();
         return userInput.nextLine();
     }
 
     private int dynamicMenuIntEntry(List<String> menuOptions) {
+        Scanner userInput = new Scanner(System.in);
         menuOptions.forEach(System.out::println);
-        userInput.reset();
         return userInput.nextInt();
+
     }
 
     /**
