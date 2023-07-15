@@ -8,11 +8,15 @@ import swen646.edwenson.exception.IllegalOperationException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Manager {
@@ -62,11 +66,21 @@ public class Manager {
         return userInput.nextLine();
     }
 
-    private int dynamicMenuIntEntry(List<String> menuOptions) {
+    private int dynamicMenuIntEntry(List<String> menuOptions, int... expected) {
         Scanner userInput = new Scanner(System.in);
-        menuOptions.forEach(System.out::println);
-        return userInput.nextInt();
-
+        int userEntry = -1;
+        boolean validEntry = false;
+        do {
+            menuOptions.forEach(System.out::println);
+            userEntry = userInput.nextInt();
+            int finalUserEntry = userEntry;
+            if (expected.length > 0) {
+                validEntry = Arrays.stream(expected).anyMatch(e -> e == finalUserEntry);
+            } else {
+                validEntry = true;
+            }
+        } while (!validEntry);
+        return userEntry;
     }
 
     /**
@@ -98,7 +112,7 @@ public class Manager {
             int option = dynamicMenuIntEntry(Arrays.asList(
                     "Load Account Data Sub-menu",
                     "1 - Load One Specific Account",
-                    "2 - Load All Account")
+                    "2 - Load All Accounts")
             );
 
             if (option == 1) {
@@ -118,8 +132,6 @@ public class Manager {
     private void loadAllAccount(String dataLocation, List<Path> dataFolders) {
         System.out.println("Loading data from:-> "+ dataLocation);
         dataFolders.forEach(p -> {
-            System.out.println("Found account folder: " + p);
-            System.out.println("Found out " + p.getFileName());
             if (p.getFileName().toString().startsWith("A")) {
                 try {
                     Account acc = convertAcc(new File(p.toString(), "acc-" + p.getFileName()+ ".json"));
@@ -150,6 +162,67 @@ public class Manager {
         }
     }
 
+    public void createAccount(){
+        String accAddress = dynamicMenuStringEntry(
+                List.of("Please type account owner address")
+        );
+
+        String email = "";
+        do {
+            email = dynamicMenuStringEntry(
+                List.of("Please type email address")
+            );
+            if(!email.matches(".*@.*\\..*")){
+                System.out.println("Please provide email format like: email@domain.com");
+            }
+        } while(!email.matches(".*@.*\\..*"));
+
+        String phone = "";
+        do {
+            phone = dynamicMenuStringEntry(
+                    List.of("Please type phone number\nTYPE 10 DIGITS ONLY")
+            );
+        } while (phone.length() != 10);
+
+        String dataLocation = dynamicMenuStringEntry(
+                List.of("Please provide Data path to save account")
+        );
+
+        Optional<String> accountNumber = Optional.empty();
+        do {
+            try {
+                String accNumber = "A" + String.valueOf(Math.random()).substring(4, 13);
+                System.out.println("Generated account Number :> " + accNumber);
+                accountNumber = checkAccNumberAndLocation(accNumber, dataLocation);
+            } catch (RuntimeException re) {
+                re.printStackTrace();
+            }
+        } while (accountNumber.isEmpty());
+        Path newAccountFolder = Path.of(dataLocation, accountNumber.get());
+
+        Account account = new Account(accountNumber.get(), accAddress, email, phone);
+
+        try {
+            newAccountFolder = Files.createDirectories(newAccountFolder);
+            addAccount(account);
+            saveAccountToFile(account, newAccountFolder);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private Optional<String> checkAccNumberAndLocation(String accNumber, String dataLocation) {
+        Path mainPath = Path.of(dataLocation);
+        Path newAccountFolder = Path.of(dataLocation, accNumber);
+        System.out.println("dataLocation = " + mainPath);
+        if(!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
+        }
+        if(Files.exists(newAccountFolder, LinkOption.NOFOLLOW_LINKS)) {
+            throw new DuplicateObjectException("Account Location: " + newAccountFolder + " already exists");
+        }
+        return Optional.of(accNumber);
+    }
+
     /**
      * This method will Get the list of loaded accounts from Manager
      *
@@ -178,7 +251,6 @@ public class Manager {
      */
     public void addAccount(Account account) throws DuplicateObjectException, IllegalStateException {
         if (Objects.nonNull(account)) {
-            System.out.println(account.getAccNum());
             if (getAccountByNum(account.getAccNum()).isEmpty()) {
                 this.account.add(account);
             } else {
@@ -196,6 +268,70 @@ public class Manager {
      * @param accNum
      */
     public void saveToFile(String accNum) {
+
+    }
+
+    public void saveAccountToFile(Account acc, Path directory) throws IOException {
+        mapper.writeValue(new File(directory.toString(), "acc-" + acc.getAccNum() + ".json"), acc);
+    }
+
+    public void createReservation() {
+        String dataLocation = dynamicMenuStringEntry(
+                List.of("Please provide Data path to save reservation")
+        );
+
+        String accNum = dynamicMenuStringEntry(
+                List.of("Please type account number to add this reservation to")
+        );
+        Path mainPath = Path.of(dataLocation);
+        Path newAccountFolder = Path.of(dataLocation, accNum);
+        System.out.println("dataLocation = " + mainPath);
+        if(!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
+        }
+        if(!Files.exists(newAccountFolder, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalLoadException("Account Location: " + newAccountFolder + " not found");
+        }
+
+        String lodgingAddress = dynamicMenuStringEntry(
+                List.of("Please type lodging physical address")
+        );
+        int sameAddrOption = dynamicMenuIntEntry(Arrays.asList(
+                "Is the physical address of the lodging the same as its mailing address",
+                "1 => Yes",
+                "2 => No"), 1,2
+        );
+        String lodgingMailingAddress = "";
+        if (sameAddrOption == 1) {
+            lodgingMailingAddress = lodgingAddress;
+        } else {
+            lodgingMailingAddress = dynamicMenuStringEntry(
+                    List.of("Please type lodging physical address")
+            );
+        }
+
+        Date checkIn = null;
+        do {
+            String checkInDate = dynamicMenuStringEntry(
+                    Arrays.asList("Please enter check-in Date", "Format: MM/DD/YY")
+            );
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy");
+                checkIn = sdf.parse(checkInDate);
+                System.out.println("Check-In date valid -> " + checkIn.toString());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            if (Objects.isNull(checkIn) && checkIn.after(new Date())){
+                System.out.println("Remember check-in date should be later than today.");
+            }
+        } while(Objects.isNull(checkIn) && checkIn.after(new Date()));
+
+        int lengthOfStay = dynamicMenuIntEntry(List.of("Please enter the number of nights"));
+        int beds = dynamicMenuIntEntry(List.of("Please enter the number of beds"));
+        int bedrooms = dynamicMenuIntEntry(List.of("Please enter the number of bedrooms"));
+        int baths = dynamicMenuIntEntry(List.of("Please enter the number of baths"));
+        int sqFeet = dynamicMenuIntEntry(List.of("Please enter the lodging size in square feet"));
 
     }
 

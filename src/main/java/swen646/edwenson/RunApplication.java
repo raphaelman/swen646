@@ -25,6 +25,21 @@ public class RunApplication {
                 case 1:
                     manager.loadAccAndResv();
                     break;
+                case 2:
+                    manager.createAccount();
+                    break;
+                case 3:
+                    manager.createReservation();
+                    break;
+                case 4:
+                    manager.createAccount();
+                    break;
+                case 5:
+                    manager.createAccount();
+                    break;
+                case 6:
+                    manager.createAccount();
+                    break;
                 case 9:
                     System.exit(0);
                 default:
@@ -36,12 +51,13 @@ public class RunApplication {
 
     public static void mainMenu() {
         System.out.println("\n\nOPTIONS");
-        System.out.println("0 - Display the Menu at anytime");
-        System.out.println("1 - Create a new Account");
-        System.out.println("2 - Make a reservation");
-        System.out.println("3 - Update a reservation");
-        System.out.println("4 - Request a reservation price per night");
-        System.out.println("5 - Request total reservation price");
+        System.out.println("0 - Display the main Menu\nWhen you are done with a function");
+        System.out.println("1 - Load Data from file");
+        System.out.println("2 - Create a new Account");
+        System.out.println("3 - Make a reservation");
+        System.out.println("4 - Update a reservation");
+        System.out.println("5 - Request a reservation price per night");
+        System.out.println("6 - Request total reservation price");
         System.out.println("9 - Terminate Program");
     }
 }
