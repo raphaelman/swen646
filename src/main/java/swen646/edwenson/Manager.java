@@ -269,6 +269,12 @@ public class Manager {
 
     }
 
+    /**
+     * This method will allow to save or update account data into files using account numbers
+     *
+     * @param acc - Account to be saved
+     * @param directory - Path location to save the account object
+     */
     public void saveAccountToFile(Account acc, Path directory) throws IOException {
         mapper.writeValue(new File(directory.toString(), "acc-" + acc.getAccNum() + ".json"), acc);
     }
@@ -370,7 +376,12 @@ public class Manager {
                     lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
                     Reservation.DRAFT,kitEntry == 1);
             hResv.updatePrice();
-            addReservation(hResv);
+            try {
+                saveResToFile(hResv, newAccountFolder);
+                addReservation(hResv);
+            } catch (IOException ioe){
+                ioe.printStackTrace();
+            }
         } else if (typeOfResv ==2) {
             int floors = dynamicMenuIntEntry(
                     List.of("How many floors are there?")
@@ -379,7 +390,12 @@ public class Manager {
                     lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
                     Reservation.DRAFT, floors);
             hoResv.updatePrice();
-            addReservation(hoResv);
+            try {
+                saveResToFile(hoResv, newAccountFolder);
+                addReservation(hoResv);
+            } catch (IOException ioe){
+                ioe.printStackTrace();
+            }
         } else if (typeOfResv ==3) {
             int fullKitEntry = dynamicMenuIntEntry(
                     Arrays.asList("Is there a full Kitchen?", "1 -> Yes", "2 -> No"),
@@ -393,8 +409,16 @@ public class Manager {
                     lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
                     Reservation.DRAFT, fullKitEntry == 1, loftEntry == 1);
             cResv.updatePrice();
-            addReservation(cResv);
+            try {
+                saveResToFile(cResv, newAccountFolder);
+                addReservation(cResv);
+            } catch (IOException ioe){
+                ioe.printStackTrace();
+            }
         }
+        Reservation msgResv = hResv == null ? hoResv == null ? cResv : hoResv : hResv;
+        System.out.println("Reservation with number:> " + msgResv.getResvNum() +
+                "Successfully created\nunder the account:>" + msgResv.getAccNum());
     }
 
     private Optional<Reservation> getReservation(String resvNumber) {
@@ -430,6 +454,10 @@ public class Manager {
         } else {
             throw new IllegalStateException("Null Reservation List Object provided");
         }
+    }
+
+    private void saveResToFile(Reservation resv, Path directory) throws IOException {
+        mapper.writeValue(new File(directory.toString(), resv.getResvNum() + ".json"), resv);
     }
 
     /**
