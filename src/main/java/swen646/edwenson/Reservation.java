@@ -21,7 +21,7 @@ public class Reservation {
     private Double price;
     private String status;
 
-    public Reservation(String accNum, String resvNum, String physicalAddr, String mailingAddr, Date checkInDate, Integer lengthOfStay, Integer bedQty, Integer bedroomQty, Integer bathQty, Integer sqFeet, Double price, String status) {
+    public Reservation(String accNum, String resvNum, String physicalAddr, String mailingAddr, Date checkInDate, Integer lengthOfStay, Integer bedQty, Integer bedroomQty, Integer bathQty, Integer sqFeet, String status) {
         this.accNum = accNum;
         this.resvNum = resvNum;
         this.physicalAddr = physicalAddr;
@@ -32,7 +32,6 @@ public class Reservation {
         this.bedroomQty = bedroomQty < 1 ? 1: bedroomQty;
         this.bathQty = bathQty < 1 ? 1 : bathQty;
         this.sqFeet = sqFeet;
-        this.price = price;
         this.status = status;
     }
 
@@ -42,7 +41,7 @@ public class Reservation {
      */
     public void basePrice() {
         double basePrice = 120.0;
-        this.price = sqFeet > 900 ? basePrice + 15.0 : basePrice;
+        this.price = sqFeet > 900 ? (basePrice + 15.0) * lengthOfStay : basePrice * lengthOfStay;
     }
 
     public String getAccNum() {

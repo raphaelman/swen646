@@ -11,18 +11,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Manager {
 
-    private ArrayList<Account> account;
     private final ObjectMapper mapper = new ObjectMapper();
+    private ArrayList<Account> account;
 
     public Manager() {
         this.account = new ArrayList<>();
@@ -100,14 +97,14 @@ public class Manager {
     private void loadDataFromFile(String dataLocation) throws IOException {
         Path mainPath = Path.of(dataLocation);
         System.out.println("dataLocation = " + mainPath);
-        if(!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+        if (!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
         }
         List<Path> dataFolders = Files.list(mainPath)
                 .filter(p -> p.getFileName().toString().startsWith("A"))
                 .collect(Collectors.toList());
         if (dataFolders.isEmpty()) {
-            System.out.println("No Account data folder found at:-> "+ dataLocation);
+            System.out.println("No Account data folder found at:-> " + dataLocation);
         } else {
             int option = dynamicMenuIntEntry(Arrays.asList(
                     "Load Account Data Sub-menu",
@@ -130,11 +127,11 @@ public class Manager {
     }
 
     private void loadAllAccount(String dataLocation, List<Path> dataFolders) {
-        System.out.println("Loading data from:-> "+ dataLocation);
+        System.out.println("Loading data from:-> " + dataLocation);
         dataFolders.forEach(p -> {
             if (p.getFileName().toString().startsWith("A")) {
                 try {
-                    Account acc = convertAcc(new File(p.toString(), "acc-" + p.getFileName()+ ".json"));
+                    Account acc = convertAcc(new File(p.toString(), "acc-" + p.getFileName() + ".json"));
                     System.out.println(acc.getAccNum());
                     // TODO need to complete account serialization into list of String for Reser or Jackson Mapper
                     addAccount(acc);
@@ -162,7 +159,7 @@ public class Manager {
         }
     }
 
-    public void createAccount(){
+    public void createAccount() {
         String accAddress = dynamicMenuStringEntry(
                 List.of("Please type account owner address")
         );
@@ -170,12 +167,12 @@ public class Manager {
         String email = "";
         do {
             email = dynamicMenuStringEntry(
-                List.of("Please type email address")
+                    List.of("Please type email address")
             );
-            if(!email.matches(".*@.*\\..*")){
+            if (!email.matches(".*@.*\\..*")) {
                 System.out.println("Please provide email format like: email@domain.com");
             }
-        } while(!email.matches(".*@.*\\..*"));
+        } while (!email.matches(".*@.*\\..*"));
 
         String phone = "";
         do {
@@ -210,14 +207,15 @@ public class Manager {
             throw new RuntimeException(e);
         }
     }
+
     private Optional<String> checkAccNumberAndLocation(String accNumber, String dataLocation) {
         Path mainPath = Path.of(dataLocation);
         Path newAccountFolder = Path.of(dataLocation, accNumber);
         System.out.println("dataLocation = " + mainPath);
-        if(!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+        if (!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
         }
-        if(Files.exists(newAccountFolder, LinkOption.NOFOLLOW_LINKS)) {
+        if (Files.exists(newAccountFolder, LinkOption.NOFOLLOW_LINKS)) {
             throw new DuplicateObjectException("Account Location: " + newAccountFolder + " already exists");
         }
         return Optional.of(accNumber);
@@ -281,17 +279,22 @@ public class Manager {
         );
 
         String accNum = dynamicMenuStringEntry(
-                List.of("Please type account number to add this reservation to")
+                List.of("Please type account number to add this reservation to\nEx: AXXXXXXXXX")
         );
         Path mainPath = Path.of(dataLocation);
         Path newAccountFolder = Path.of(dataLocation, accNum);
         System.out.println("dataLocation = " + mainPath);
-        if(!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+        if (!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
         }
-        if(!Files.exists(newAccountFolder, LinkOption.NOFOLLOW_LINKS)) {
+        if (!Files.exists(newAccountFolder, LinkOption.NOFOLLOW_LINKS)) {
             throw new IllegalLoadException("Account Location: " + newAccountFolder + " not found");
         }
+
+        int typeOfResv = dynamicMenuIntEntry(
+                Arrays.asList("What type of reservation", "1 -> Hotel", "2 -> House", "3 -> Cabin"),
+                1, 2, 3
+        );
 
         String lodgingAddress = dynamicMenuStringEntry(
                 List.of("Please type lodging physical address")
@@ -299,7 +302,7 @@ public class Manager {
         int sameAddrOption = dynamicMenuIntEntry(Arrays.asList(
                 "Is the physical address of the lodging the same as its mailing address",
                 "1 => Yes",
-                "2 => No"), 1,2
+                "2 => No"), 1, 2
         );
         String lodgingMailingAddress = "";
         if (sameAddrOption == 1) {
@@ -313,7 +316,7 @@ public class Manager {
         Date checkIn = null;
         do {
             String checkInDate = dynamicMenuStringEntry(
-                    Arrays.asList("Please enter check-in Date", "Format: MM/DD/YY")
+                    Arrays.asList("Please enter check-in Date", "Format: MM-DD-YYYY")
             );
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy");
@@ -322,17 +325,76 @@ public class Manager {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
-            if (Objects.isNull(checkIn) && checkIn.after(new Date())){
+            if (Objects.isNull(checkIn) || checkIn.after(new Date())) {
                 System.out.println("Remember check-in date should be later than today.");
             }
-        } while(Objects.isNull(checkIn) && checkIn.after(new Date()));
+        } while (Objects.isNull(checkIn) || checkIn.after(new Date()));
 
         int lengthOfStay = dynamicMenuIntEntry(List.of("Please enter the number of nights"));
         int beds = dynamicMenuIntEntry(List.of("Please enter the number of beds"));
         int bedrooms = dynamicMenuIntEntry(List.of("Please enter the number of bedrooms"));
         int baths = dynamicMenuIntEntry(List.of("Please enter the number of baths"));
         int sqFeet = dynamicMenuIntEntry(List.of("Please enter the lodging size in square feet"));
+        Optional<String> resvNumber = Optional.empty();
+        do {
+            try {
+                String resNum = String.valueOf(Math.random()).substring(4, 14);
+                if (typeOfResv == 1)
+                    resNum = "res-H"+resNum;
+                else if (typeOfResv ==2)
+                    resNum = "res-O"+resNum;
+                else if (typeOfResv ==3)
+                    resNum = "res-C"+resNum;
+                System.out.println("Generated reservation Number :> " + resNum);
 
+                Optional<Reservation> reservation = getReservation(resNum);
+                if (reservation.isEmpty()){
+                    resvNumber = Optional.of(resNum);
+                } else {
+                    throw new DuplicateObjectException("Reservation number: " + resNum + " already exists");
+                }
+            } catch (RuntimeException re) {
+                re.printStackTrace();
+            }
+        } while (resvNumber.isEmpty());
+
+        HotelReservation hResv = null;
+        HouseReservation hoResv = null;
+        CabinReservation cResv = null;
+        if (typeOfResv == 1) {
+            int kitEntry = dynamicMenuIntEntry(
+                    Arrays.asList("Is there a Kitchenette?", "1 -> Yes", "2 -> No"),
+                    1, 2
+            );
+            hResv = new HotelReservation(accNum, resvNumber.orElse(""), lodgingAddress,
+                    lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
+                    Reservation.DRAFT,kitEntry == 1);
+            hResv.updatePrice();
+            addReservation(hResv);
+        } else if (typeOfResv ==2) {
+            int floors = dynamicMenuIntEntry(
+                    List.of("How many floors are there?")
+            );
+            hoResv = new HouseReservation(accNum, resvNumber.orElse(""), lodgingAddress,
+                    lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
+                    Reservation.DRAFT, floors);
+            hoResv.updatePrice();
+            addReservation(hoResv);
+        } else if (typeOfResv ==3) {
+            int fullKitEntry = dynamicMenuIntEntry(
+                    Arrays.asList("Is there a full Kitchen?", "1 -> Yes", "2 -> No"),
+                    1, 2
+            );
+            int loftEntry = dynamicMenuIntEntry(
+                    Arrays.asList("Is there a loft?", "1 -> Yes", "2 -> No"),
+                    1, 2
+            );
+            cResv = new CabinReservation(accNum, resvNumber.orElse(""), lodgingAddress,
+                    lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
+                    Reservation.DRAFT, fullKitEntry == 1, loftEntry == 1);
+            cResv.updatePrice();
+            addReservation(cResv);
+        }
     }
 
     private Optional<Reservation> getReservation(String resvNumber) {
@@ -353,7 +415,7 @@ public class Manager {
         if (Objects.nonNull(reservation)) {
             if (getReservation(reservation.getResvNum()).isEmpty()) {
                 getAccountByNum(reservation.getAccNum())
-                        .orElseThrow(() -> new IllegalArgumentException("Account not existed - Invalid parameter"))
+                        .orElseThrow(() -> new IllegalArgumentException("Account not found in Memory - Invalid parameter"))
                         .addReservation(reservation);
             } else {
                 throw new DuplicateObjectException("Reservation with number" + reservation.getResvNum() + "already existed in " +
@@ -396,9 +458,9 @@ public class Manager {
      *
      * @param reservation provided reservation to update reservation found in the list in the account
      * @throws IllegalOperationException on unauthorized action on existed reservation found from accounts in manager
-     * @throws IllegalArgumentException when reservation not existed from accounts in Manager
+     * @throws IllegalArgumentException  when reservation not existed from accounts in Manager
      */
-    public void updateReservation(Reservation reservation) throws IllegalOperationException, IllegalArgumentException{
+    public void updateReservation(Reservation reservation) throws IllegalOperationException, IllegalArgumentException {
         Reservation resv = getReservation(reservation.getResvNum())
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not existed - Invalid Reservation parameter"));
         if (reservation.getStatus().equalsIgnoreCase(Reservation.COMPLETED)) {
