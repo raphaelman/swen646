@@ -15,10 +15,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Manager {
 
     private final ObjectMapper mapper = new ObjectMapper();
+    private final Map<String, String> CACHE = new HashMap<>();
     private ArrayList<Account> account;
 
     public Manager() {
@@ -84,11 +86,38 @@ public class Manager {
      * This method will load and create objects from data stored in files
      */
     public void loadAccAndResv() throws IOException {
-        String dataLocation = dynamicMenuStringEntry(
-                List.of("Please provide Account Data path")
-        );
+        String dataLocation = retrieveDataLocation();
 
         loadDataFromFile(dataLocation);
+    }
+
+    private String retrieveDataLocation() {
+        String dataLocation = "";
+        if (!CACHE.getOrDefault("data_location", "").isEmpty()) {
+            int option = dynamicMenuIntEntry(Arrays.asList(
+                    "A previous location:" + CACHE.get("data_location"),
+                    "is found would like to use it?",
+                    "1 - Yes",
+                    "2 - No"), 1, 2
+            );
+            if (option == 1) {
+                dataLocation = CACHE.get("data_location");
+            } else {
+                dataLocation = getDataLocationEntry();
+            }
+        } else {
+            dataLocation = getDataLocationEntry();
+        }
+        return dataLocation;
+    }
+
+    private String getDataLocationEntry() {
+        String dataLocation;
+        dataLocation = dynamicMenuStringEntry(
+                List.of("Please provide Account Data path")
+        );
+        CACHE.put("data_location", dataLocation);
+        return dataLocation;
     }
 
 //    /home/eraphael/study/data
@@ -109,7 +138,7 @@ public class Manager {
             int option = dynamicMenuIntEntry(Arrays.asList(
                     "Load Account Data Sub-menu",
                     "1 - Load One Specific Account",
-                    "2 - Load All Accounts")
+                    "2 - Load All Accounts"), 1, 2
             );
 
             if (option == 1) {
@@ -132,7 +161,7 @@ public class Manager {
             if (p.getFileName().toString().startsWith("A")) {
                 try {
                     Account acc = convertAcc(new File(p.toString(), "acc-" + p.getFileName() + ".json"));
-                    System.out.println(acc.getAccNum());
+                    System.out.println("Loading account with number:->" + acc.getAccNum());
                     // TODO need to complete account serialization into list of String for Reser or Jackson Mapper
                     addAccount(acc);
                     addReservation(retrieveReservation(p));
@@ -181,9 +210,7 @@ public class Manager {
             );
         } while (phone.length() != 10);
 
-        String dataLocation = dynamicMenuStringEntry(
-                List.of("Please provide Data path to save account")
-        );
+        String dataLocation = retrieveDataLocation();
 
         Optional<String> accountNumber = Optional.empty();
         do {
@@ -262,27 +289,43 @@ public class Manager {
 
     /**
      * This method will allow to save or update account data into files using account numbers
-     *
-     * @param accNum
      */
-    public void saveToFile(String accNum) {
+    public void updateAccToFile() {
+        String dataLocation = retrieveDataLocation();
 
+        String accNum = dynamicMenuStringEntry(
+                List.of("Please type account number to save\nEx: AXXXXXXXXX")
+        );
+        Path mainPath = Path.of(dataLocation);
+        Path newAccountFolder = Path.of(dataLocation, accNum);
+        System.out.println("dataLocation = " + mainPath);
+        if (!Files.exists(mainPath, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IllegalLoadException("Data Location: " + dataLocation + " not found");
+        }
+        try {
+            Account acc = this.account.stream()
+                    .filter(a -> a.getAccNum().equalsIgnoreCase(accNum))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalLoadException("No Account with number:> " + accNum + " found"));
+            saveAccountToFile(acc, newAccountFolder);
+        } catch (IOException | RuntimeException e) {
+            System.out.println("Account file was not updated due to exception below");
+            e.printStackTrace();
+        }
     }
 
     /**
      * This method will allow to save or update account data into files using account numbers
      *
-     * @param acc - Account to be saved
-     * @param directory - Path location to save the account object
+     * @param acc       - Account to be saved
+     * @param directory - Path location to save the account file
      */
     public void saveAccountToFile(Account acc, Path directory) throws IOException {
         mapper.writeValue(new File(directory.toString(), "acc-" + acc.getAccNum() + ".json"), acc);
     }
 
     public void createReservation() {
-        String dataLocation = dynamicMenuStringEntry(
-                List.of("Please provide Data path to save reservation")
-        );
+        String dataLocation = retrieveDataLocation();
 
         String accNum = dynamicMenuStringEntry(
                 List.of("Please type account number to add this reservation to\nEx: AXXXXXXXXX")
@@ -331,10 +374,10 @@ public class Manager {
             } catch (ParseException e) {
                 e.printStackTrace();
             }
-            if (Objects.isNull(checkIn) || checkIn.after(new Date())) {
+            if (Objects.isNull(checkIn) || checkIn.before(new Date())) {
                 System.out.println("Remember check-in date should be later than today.");
             }
-        } while (Objects.isNull(checkIn) || checkIn.after(new Date()));
+        } while (Objects.isNull(checkIn) || checkIn.before(new Date()));
 
         int lengthOfStay = dynamicMenuIntEntry(List.of("Please enter the number of nights"));
         int beds = dynamicMenuIntEntry(List.of("Please enter the number of beds"));
@@ -346,15 +389,15 @@ public class Manager {
             try {
                 String resNum = String.valueOf(Math.random()).substring(4, 14);
                 if (typeOfResv == 1)
-                    resNum = "res-H"+resNum;
-                else if (typeOfResv ==2)
-                    resNum = "res-O"+resNum;
-                else if (typeOfResv ==3)
-                    resNum = "res-C"+resNum;
+                    resNum = "res-H" + resNum;
+                else if (typeOfResv == 2)
+                    resNum = "res-O" + resNum;
+                else if (typeOfResv == 3)
+                    resNum = "res-C" + resNum;
                 System.out.println("Generated reservation Number :> " + resNum);
 
-                Optional<Reservation> reservation = getReservation(resNum);
-                if (reservation.isEmpty()){
+                Optional<String> reservation = findResvNumberInAccount(resNum);
+                if (reservation.isEmpty()) {
                     resvNumber = Optional.of(resNum);
                 } else {
                     throw new DuplicateObjectException("Reservation number: " + resNum + " already exists");
@@ -374,15 +417,15 @@ public class Manager {
             );
             hResv = new HotelReservation(accNum, resvNumber.orElse(""), lodgingAddress,
                     lodgingMailingAddress, checkIn, lengthOfStay, beds, bedrooms, baths, sqFeet,
-                    Reservation.DRAFT,kitEntry == 1);
+                    Reservation.DRAFT, kitEntry == 1);
             hResv.updatePrice();
             try {
                 saveResToFile(hResv, newAccountFolder);
                 addReservation(hResv);
-            } catch (IOException ioe){
+            } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
-        } else if (typeOfResv ==2) {
+        } else if (typeOfResv == 2) {
             int floors = dynamicMenuIntEntry(
                     List.of("How many floors are there?")
             );
@@ -393,10 +436,10 @@ public class Manager {
             try {
                 saveResToFile(hoResv, newAccountFolder);
                 addReservation(hoResv);
-            } catch (IOException ioe){
+            } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
-        } else if (typeOfResv ==3) {
+        } else if (typeOfResv == 3) {
             int fullKitEntry = dynamicMenuIntEntry(
                     Arrays.asList("Is there a full Kitchen?", "1 -> Yes", "2 -> No"),
                     1, 2
@@ -412,21 +455,35 @@ public class Manager {
             try {
                 saveResToFile(cResv, newAccountFolder);
                 addReservation(cResv);
-            } catch (IOException ioe){
+            } catch (IOException ioe) {
                 ioe.printStackTrace();
             }
         }
         Reservation msgResv = hResv == null ? hoResv == null ? cResv : hoResv : hResv;
         System.out.println("Reservation with number:> " + msgResv.getResvNum() +
-                "Successfully created\nunder the account:>" + msgResv.getAccNum());
+                "\nSuccessfully created under the account:>" + msgResv.getAccNum());
     }
 
-    private Optional<Reservation> getReservation(String resvNumber) {
+    private Optional<String> findResvNumberInAccount(String resvNumber) {
         // TODO need to return specific Reservation either Cabin, House, Hotel
         return this.account.stream()
                 .flatMap(a ->
-                        a.getReservation().stream()
-                                .filter(r -> r.getResvNum().equalsIgnoreCase(resvNumber))
+                        a.getReservations().stream()
+                                .filter(rn -> rn.equalsIgnoreCase(resvNumber))
+                ).findFirst();
+    }
+
+    private Optional<Reservation> findResvInAccount(String resvNumber) {
+        // TODO need to return specific Reservation either Cabin, House, Hotel
+        return this.account.stream()
+                .flatMap(a -> {
+                            if (Objects.nonNull(a.getReservation())) {
+                                return a.getReservation().stream()
+                                        .filter(r -> r.getResvNum().equalsIgnoreCase(resvNumber));
+                            } else {
+                                return Stream.empty();
+                            }
+                        }
                 ).findFirst();
     }
 
@@ -437,12 +494,12 @@ public class Manager {
      */
     public void addReservation(Reservation reservation) {
         if (Objects.nonNull(reservation)) {
-            if (getReservation(reservation.getResvNum()).isEmpty()) {
+            if (findResvInAccount(reservation.getResvNum()).isEmpty()) {
                 getAccountByNum(reservation.getAccNum())
                         .orElseThrow(() -> new IllegalArgumentException("Account not found in Memory - Invalid parameter"))
                         .addReservation(reservation);
             } else {
-                throw new DuplicateObjectException("Reservation with number" + reservation.getResvNum() + "already existed in " +
+                throw new DuplicateObjectException("Reservation with number> " + reservation.getResvNum() + " already existed in " +
                         "Manager.\nWe can duplicate Reservation in the system.\nAction failed");
             }
         }
@@ -489,7 +546,7 @@ public class Manager {
      * @throws IllegalArgumentException  when reservation not existed from accounts in Manager
      */
     public void updateReservation(Reservation reservation) throws IllegalOperationException, IllegalArgumentException {
-        Reservation resv = getReservation(reservation.getResvNum())
+        String resvn = findResvNumberInAccount(reservation.getResvNum())
                 .orElseThrow(() -> new IllegalArgumentException("Reservation not existed - Invalid Reservation parameter"));
         if (reservation.getStatus().equalsIgnoreCase(Reservation.COMPLETED)) {
             throw new IllegalOperationException("Error - Completed reservation cannot be updated");

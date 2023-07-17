@@ -21,6 +21,7 @@ public class Reservation {
     private Double price;
     private String status;
 
+    public Reservation(){}
     public Reservation(String accNum, String resvNum, String physicalAddr, String mailingAddr, Date checkInDate, Integer lengthOfStay, Integer bedQty, Integer bedroomQty, Integer bathQty, Integer sqFeet, String status) {
         this.accNum = accNum;
         this.resvNum = resvNum;

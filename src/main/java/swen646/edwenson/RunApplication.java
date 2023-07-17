@@ -32,7 +32,7 @@ public class RunApplication {
                     manager.createReservation();
                     break;
                 case 4:
-                    manager.createAccount();
+                    manager.updateAccToFile();
                     break;
                 case 5:
                     manager.createAccount();
@@ -55,9 +55,11 @@ public class RunApplication {
         System.out.println("1 - Load Data from file");
         System.out.println("2 - Create a new Account");
         System.out.println("3 - Make a reservation");
-        System.out.println("4 - Update a reservation");
-        System.out.println("5 - Request a reservation price per night");
-        System.out.println("6 - Request total reservation price");
+        System.out.println("4 - Update Account to file");
+        System.out.println("5 - Update a reservation");
+        System.out.println(" - Request a reservation price per night");
+        System.out.println(" - Request total reservation price");
+        System.out.println("6 - Display Reservation");
         System.out.println("9 - Terminate Program");
     }
 }

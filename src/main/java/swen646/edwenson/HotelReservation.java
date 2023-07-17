@@ -5,6 +5,8 @@ import java.util.Date;
 public class HotelReservation extends Reservation {
     private Boolean hasKitchenette;
 
+    public HotelReservation() { super();}
+    
     public HotelReservation(String accNum, String resvNum, String physicalAddr, String mailingAddr, Date checkInDate, Integer lengthOfStay, Integer bedQty, Integer bedroomQty, Integer bathQty, Integer sqFeet, String status, Boolean hasKitchenette) {
         super(accNum, resvNum, physicalAddr, mailingAddr, checkInDate, lengthOfStay, bedQty, bedroomQty, bathQty, sqFeet, status);
         this.hasKitchenette = hasKitchenette;

@@ -3,9 +3,9 @@ package swen646.edwenson;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
@@ -16,7 +16,7 @@ public class Account {
     private String phone;
     @JsonIgnore
     private ArrayList<Reservation> reservation;
-    private ArrayList<String> reservations;
+    private Set<String> reservations = new HashSet<>();
 
 
     public Account(String accNum, String mailingAddr, String email, String phone, ArrayList<Reservation> reservation) {
@@ -42,9 +42,9 @@ public class Account {
         reservation.addAll(reservs);
     }
 
-    public void addReservation(Reservation reservs) {
+    public void addReservation(Reservation resv) {
         reservation = Objects.isNull(reservation) ? new ArrayList<>() : reservation;
-        reservation.add(reservs);
+        reservation.add(resv);
     }
 
     public String getAccNum() {
@@ -79,14 +79,21 @@ public class Account {
         return reservation;
     }
 
-    /*@Override
+    public Set<String> getReservations() {
+        return reservations;
+    }
+
+    public void setReservations(Set<String> reservations) {
+        this.reservations = reservations;
+    }
+
+    @Override
     public String toString() {
         return "{" +
                 "\"accNum\":\"" + accNum + "\"" +
                 ",\"mailingAddr\":\"" + mailingAddr + "\"" +
                 ",\"email\":\"" + email + "\"" +
                 ",\"phone\":\"" + phone + "\"" +
-                ",\"reservation\":\"" + reservation.stream().map(Reservation::getResvNum)
-                .collect(Collectors.toList()) + "\"}";
-    }*/
+                ",\"reservation\":\"" + reservations + "\"}";
+    }
 }
