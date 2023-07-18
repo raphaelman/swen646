@@ -1,5 +1,7 @@
 package swen646.edwenson;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Date;
 
 public class HotelReservation extends Reservation {

@@ -18,33 +18,41 @@ public class RunApplication {
         Scanner userInput = new Scanner(System.in);
         while (true) {
             int entry = userInput.nextInt();
-            switch (entry) {
-                case 0:
-                    mainMenu();
-                    break;
-                case 1:
-                    manager.loadAccAndResv();
-                    break;
-                case 2:
-                    manager.createAccount();
-                    break;
-                case 3:
-                    manager.createReservation();
-                    break;
-                case 4:
-                    manager.updateAccToFile();
-                    break;
-                case 5:
-                    manager.createAccount();
-                    break;
-                case 6:
-                    manager.createAccount();
-                    break;
-                case 9:
-                    System.exit(0);
-                default:
-                    System.out.println("Entry not in the list of options");
-                    mainMenu();
+            try {
+                switch (entry) {
+                    case 0:
+                        mainMenu();
+                        break;
+                    case 1:
+                        manager.loadAccAndResv();
+                        break;
+                    case 2:
+                        manager.createAccount();
+                        break;
+                    case 3:
+                        manager.createReservation();
+                        break;
+                    case 4:
+                        manager.updateAccToFile();
+                        break;
+                    case 5:
+                        manager.updateReservation();
+                        break;
+                    case 6:
+                        manager.getPricePerNight();
+                        break;
+                    case 7:
+                        manager.displayReservation();
+                        break;
+                    case 9:
+                        userInput.close();
+                        System.exit(0);
+                    default:
+                        System.out.println("Entry not in the list of options");
+                        mainMenu();
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
     }
@@ -57,9 +65,8 @@ public class RunApplication {
         System.out.println("3 - Make a reservation");
         System.out.println("4 - Update Account to file");
         System.out.println("5 - Update a reservation");
-        System.out.println(" - Request a reservation price per night");
-        System.out.println(" - Request total reservation price");
-        System.out.println("6 - Display Reservation");
+        System.out.println("6 - Request a reservation price per night");
+        System.out.println("7 - Display Reservation");
         System.out.println("9 - Terminate Program");
     }
 }

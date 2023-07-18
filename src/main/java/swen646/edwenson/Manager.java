@@ -1,6 +1,8 @@
 package swen646.edwenson;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import swen646.edwenson.exception.DuplicateObjectException;
 import swen646.edwenson.exception.IllegalLoadException;
 import swen646.edwenson.exception.IllegalOperationException;
@@ -19,7 +21,7 @@ import java.util.stream.Stream;
 
 public class Manager {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private final Map<String, String> CACHE = new HashMap<>();
     private ArrayList<Account> account;
 
@@ -161,10 +163,10 @@ public class Manager {
             if (p.getFileName().toString().startsWith("A")) {
                 try {
                     Account acc = convertAcc(new File(p.toString(), "acc-" + p.getFileName() + ".json"));
-                    System.out.println("Loading account with number:->" + acc.getAccNum());
-                    // TODO need to complete account serialization into list of String for Reser or Jackson Mapper
+                    System.out.println("Loading account including reservations for account number:->" + acc.getAccNum());
                     addAccount(acc);
                     addReservation(retrieveReservation(p));
+                    System.out.println("Done loading\n");
                 } catch (FileNotFoundException fnfe) {
                     throw new IllegalLoadException("Account file " + p + "not found in the specified location", fnfe);
                 } catch (IOException e) {
@@ -178,7 +180,6 @@ public class Manager {
         try {
             Account acc = convertAcc(new File(Path.of(dataHome.toString(), accNumber).toString(), "acc-" + accNumber + ".json"));
             System.out.println(acc);
-            // TODO need to complete account serialization into list of String for Reser or Jackson Mapper
             addAccount(acc);
             addReservation(retrieveReservation(dataHome));
         } catch (FileNotFoundException fnfe) {
@@ -230,6 +231,7 @@ public class Manager {
             newAccountFolder = Files.createDirectories(newAccountFolder);
             addAccount(account);
             saveAccountToFile(account, newAccountFolder);
+            System.out.println("Account successfully created!\nAccount Number:" + account.getAccNum());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -308,6 +310,14 @@ public class Manager {
                     .findFirst()
                     .orElseThrow(() -> new IllegalLoadException("No Account with number:> " + accNum + " found"));
             saveAccountToFile(acc, newAccountFolder);
+            acc.getReservation().forEach(reservation -> {
+                try {
+                    saveResToFile(reservation, newAccountFolder);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            System.out.println("Account successfully updated!\nAccount Number:" + accNum);
         } catch (IOException | RuntimeException e) {
             System.out.println("Account file was not updated due to exception below");
             e.printStackTrace();
@@ -362,22 +372,7 @@ public class Manager {
             );
         }
 
-        Date checkIn = null;
-        do {
-            String checkInDate = dynamicMenuStringEntry(
-                    Arrays.asList("Please enter check-in Date", "Format: MM-DD-YYYY")
-            );
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy");
-                checkIn = sdf.parse(checkInDate);
-                System.out.println("Check-In date valid -> " + checkIn.toString());
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            if (Objects.isNull(checkIn) || checkIn.before(new Date())) {
-                System.out.println("Remember check-in date should be later than today.");
-            }
-        } while (Objects.isNull(checkIn) || checkIn.before(new Date()));
+        Date checkIn = collectCheckinDate();
 
         int lengthOfStay = dynamicMenuIntEntry(List.of("Please enter the number of nights"));
         int beds = dynamicMenuIntEntry(List.of("Please enter the number of beds"));
@@ -389,11 +384,11 @@ public class Manager {
             try {
                 String resNum = String.valueOf(Math.random()).substring(4, 14);
                 if (typeOfResv == 1)
-                    resNum = "res-H" + resNum;
+                    resNum = "H" + resNum;
                 else if (typeOfResv == 2)
-                    resNum = "res-O" + resNum;
+                    resNum = "O" + resNum;
                 else if (typeOfResv == 3)
-                    resNum = "res-C" + resNum;
+                    resNum = "C" + resNum;
                 System.out.println("Generated reservation Number :> " + resNum);
 
                 Optional<String> reservation = findResvNumberInAccount(resNum);
@@ -464,8 +459,27 @@ public class Manager {
                 "\nSuccessfully created under the account:>" + msgResv.getAccNum());
     }
 
+    private Date collectCheckinDate() {
+        Date checkIn = null;
+        do {
+            String checkInDate = dynamicMenuStringEntry(
+                    Arrays.asList("Please enter check-in Date", "Format: MM-DD-YYYY")
+            );
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("MM-dd-yyyy");
+                checkIn = sdf.parse(checkInDate);
+                System.out.println("Check-In date valid -> " + checkIn.toString());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            if (Objects.isNull(checkIn) || checkIn.before(new Date())) {
+                System.out.println("Remember check-in date should be later than today.");
+            }
+        } while (Objects.isNull(checkIn) || checkIn.before(new Date()));
+        return checkIn;
+    }
+
     private Optional<String> findResvNumberInAccount(String resvNumber) {
-        // TODO need to return specific Reservation either Cabin, House, Hotel
         return this.account.stream()
                 .flatMap(a ->
                         a.getReservations().stream()
@@ -474,7 +488,6 @@ public class Manager {
     }
 
     private Optional<Reservation> findResvInAccount(String resvNumber) {
-        // TODO need to return specific Reservation either Cabin, House, Hotel
         return this.account.stream()
                 .flatMap(a -> {
                             if (Objects.nonNull(a.getReservation())) {
@@ -514,18 +527,74 @@ public class Manager {
     }
 
     private void saveResToFile(Reservation resv, Path directory) throws IOException {
-        mapper.writeValue(new File(directory.toString(), resv.getResvNum() + ".json"), resv);
+        mapper.writeValue(new File(directory.toString(), "res-" + resv.getResvNum() + ".json"), resv);
+    }
+
+    // /home/eraphael/study/data
+
+    public void displayReservation() throws IllegalLoadException, JsonProcessingException {
+        String accNum = dynamicMenuStringEntry(
+                List.of("Please type account number that has the reservation to display\nEx: AXXXXXXXXX")
+        );
+        Optional<Account> acc = getAccountByNum(accNum);
+        if (acc.isPresent()) {
+            System.out.println("Here is the list of reservation number found:");
+            acc.get().getReservation().forEach(r -> System.out.println("-> " + r.getResvNum()));
+
+            String resvNum = dynamicMenuStringEntry(
+                    List.of("\nPlease type reservation number to display")
+            );
+            List<Reservation> res = acc.get().getReservation()
+                    .stream()
+                    .filter(r -> r.getResvNum().equalsIgnoreCase(resvNum))
+                    .collect(Collectors.toList());
+            if (!res.isEmpty()) {
+                res.forEach(r -> {
+                    try {
+                        System.out.println(mapper.writeValueAsString(r));
+                    } catch (JsonProcessingException e) {
+                        System.out.println("Unable to print reservation");
+                        e.printStackTrace();
+                    }
+                });
+            } else {
+                throw new IllegalLoadException("No reservation found with that number :=> " + resvNum);
+            }
+        } else {
+            throw new IllegalLoadException("Account with number: " + accNum + " not found");
+        }
     }
 
     /**
      * This method will calculate and return price for a reservation per night
      *
-     * @param reservation to be evaluated
-     * @return Double
      */
-    public Double getPricePerNight(Reservation reservation) {
-        return 0.0;
+    public void getPricePerNight() {
+        String accNum = dynamicMenuStringEntry(
+                List.of("Please type account number that has the reservation to update\nEx: AXXXXXXXXX")
+        );
+        Optional<Account> acc = getAccountByNum(accNum);
+        Reservation res = null;
+        if (acc.isPresent()) {
+            System.out.println("Here is the list of reservation number found:");
+            acc.get().getReservation().forEach(r -> System.out.println("-> " + r.getResvNum()));
+
+            String resvNum = dynamicMenuStringEntry(
+                    List.of("\nPlease type reservation number to update")
+            );
+            Reservation reservation = acc.get().getReservation()
+                    .stream()
+                    .filter(r -> r.getResvNum().equalsIgnoreCase(resvNum))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not existed - Invalid Reservation parameter"));
+            System.out.println("The price per night for this reservation is: "
+                    + reservation.getPrice() / reservation.getLengthOfStay());
+        } else {
+            throw new IllegalLoadException("Account with number: " + accNum + " not found");
+        }
     }
+
+
 
     /**
      * Get total price for the length of stay of the reservation
@@ -541,20 +610,63 @@ public class Manager {
      * This method will help to update a reservation like complete it or cancel it
      * The reservation will be also updated on the list
      *
-     * @param reservation provided reservation to update reservation found in the list in the account
      * @throws IllegalOperationException on unauthorized action on existed reservation found from accounts in manager
      * @throws IllegalArgumentException  when reservation not existed from accounts in Manager
      */
-    public void updateReservation(Reservation reservation) throws IllegalOperationException, IllegalArgumentException {
-        String resvn = findResvNumberInAccount(reservation.getResvNum())
-                .orElseThrow(() -> new IllegalArgumentException("Reservation not existed - Invalid Reservation parameter"));
-        if (reservation.getStatus().equalsIgnoreCase(Reservation.COMPLETED)) {
-            throw new IllegalOperationException("Error - Completed reservation cannot be updated");
-        } else if (reservation.getStatus().equalsIgnoreCase(Reservation.CANCELLED)) {
-            throw new IllegalOperationException("Error - Cancelled reservation cannot be updated");
-        } else if (reservation.getCheckInDate().before(new Date())) {
-            throw new IllegalOperationException("Error - Reservation with past date cannot be updated");
+    public void updateReservation() throws IllegalOperationException, IllegalArgumentException, IOException {
+        String accNum = dynamicMenuStringEntry(
+                List.of("Please type account number that has the reservation to update\nEx: AXXXXXXXXX")
+        );
+        Optional<Account> acc = getAccountByNum(accNum);
+        Reservation res = null;
+        if (acc.isPresent()) {
+            System.out.println("Here is the list of reservation number found:");
+            acc.get().getReservation().forEach(r -> System.out.println("-> " + r.getResvNum()));
+
+            String resvNum = dynamicMenuStringEntry(
+                    List.of("\nPlease type reservation number to update")
+            );
+            Reservation reservation = acc.get().getReservation()
+                    .stream()
+                    .filter(r -> r.getResvNum().equalsIgnoreCase(resvNum))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Reservation not existed - Invalid Reservation parameter"));
+
+            if (reservation.getStatus().equalsIgnoreCase(Reservation.COMPLETED)) {
+                throw new IllegalOperationException("Error - Completed reservation cannot be updated");
+            } else if (reservation.getStatus().equalsIgnoreCase(Reservation.CANCELLED)) {
+                throw new IllegalOperationException("Error - Cancelled reservation cannot be updated");
+            } else if (reservation.getCheckInDate().before(new Date())) {
+                throw new IllegalOperationException("Error - Reservation with past date cannot be updated");
+            }
+
+            int option = dynamicMenuIntEntry(
+                    Arrays.asList("\nPlease choose the option to update",
+                            "1 - Complete reservation",
+                            "2 - Cancel reservation",
+                            "3 - Change length of Stay",
+                            "4 - Change Check-in date"
+                    ), 1, 2, 3, 4
+            );
+            if (option == 1) {
+                reservation.setStatus(Reservation.COMPLETED);
+            } else if (option == 2) {
+                reservation.setStatus(Reservation.CANCELLED);
+            } else if (option == 3) {
+                System.out.println("Previous Length Of Stay was:> " + reservation.getLengthOfStay());
+                int lenOfStay = dynamicMenuIntEntry(
+                        List.of("\nPlease type the new length of stay of number of nights")
+                );
+                reservation.setLengthOfStay(lenOfStay);
+            } else if (option == 4) {
+                System.out.println("\nPrevious Check-in Date was:> " + reservation.getCheckInDate() + "\n");
+                Date newCheckIn = collectCheckinDate();
+                reservation.setCheckInDate(newCheckIn);
+            }
+            saveResToFile(reservation, Path.of(CACHE.get("data_location"), accNum));
+            System.out.println(mapper.writeValueAsString(reservation));
+        } else {
+            throw new IllegalLoadException("Account with number: " + accNum + " not found");
         }
-        // TODO - need to complete update actions
     }
 }
