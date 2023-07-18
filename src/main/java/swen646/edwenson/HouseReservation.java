@@ -5,6 +5,10 @@ import java.util.Date;
 public class HouseReservation extends Reservation {
     private Integer floorQty;
 
+    public HouseReservation() {
+        super();
+    }
+
     public HouseReservation(String accNum, String resvNum, String physicalAddr, String mailingAddr, Date checkInDate, Integer lengthOfStay, Integer bedQty, Integer bedroomQty, Integer bathQty, Integer sqFeet, String status, Integer floorQty) {
         super(accNum, resvNum, physicalAddr, mailingAddr, checkInDate, lengthOfStay, bedQty, bedroomQty, bathQty, sqFeet, status);
         this.floorQty = floorQty;

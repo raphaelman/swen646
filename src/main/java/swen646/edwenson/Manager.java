@@ -122,9 +122,6 @@ public class Manager {
         return dataLocation;
     }
 
-//    /home/eraphael/study/data
-//    A123456789
-
     private void loadDataFromFile(String dataLocation) throws IOException {
         Path mainPath = Path.of(dataLocation);
         System.out.println("dataLocation = " + mainPath);
@@ -232,6 +229,7 @@ public class Manager {
             addAccount(account);
             saveAccountToFile(account, newAccountFolder);
             System.out.println("Account successfully created!\nAccount Number:" + account.getAccNum());
+            System.out.println("\nType 0 - To display the main menu");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -290,7 +288,7 @@ public class Manager {
     }
 
     /**
-     * This method will allow to save or update account data into files using account numbers
+     * This method will allow to save/update account data into files using account numbers
      */
     public void updateAccToFile() {
         String dataLocation = retrieveDataLocation();
@@ -595,17 +593,6 @@ public class Manager {
     }
 
 
-
-    /**
-     * Get total price for the length of stay of the reservation
-     *
-     * @param reservation to be evaluated
-     * @return Double
-     */
-    public Double getTotalPrice(Reservation reservation) {
-        return 0.0;
-    }
-
     /**
      * This method will help to update a reservation like complete it or cancel it
      * The reservation will be also updated on the list
@@ -658,12 +645,23 @@ public class Manager {
                         List.of("\nPlease type the new length of stay of number of nights")
                 );
                 reservation.setLengthOfStay(lenOfStay);
+                if (reservation instanceof HotelReservation){
+                    HotelReservation hResv = (HotelReservation) reservation;
+                    hResv.updatePrice();
+                } else if (reservation instanceof HouseReservation) {
+                    HouseReservation hoResv = (HouseReservation) reservation;
+                    hoResv.updatePrice();
+                } else if (reservation instanceof CabinReservation) {
+                    CabinReservation cResv = (CabinReservation) reservation;
+                    cResv.updatePrice();
+                }
             } else if (option == 4) {
                 System.out.println("\nPrevious Check-in Date was:> " + reservation.getCheckInDate() + "\n");
                 Date newCheckIn = collectCheckinDate();
                 reservation.setCheckInDate(newCheckIn);
             }
             saveResToFile(reservation, Path.of(CACHE.get("data_location"), accNum));
+            System.out.println("Updated Reservation");
             System.out.println(mapper.writeValueAsString(reservation));
         } else {
             throw new IllegalLoadException("Account with number: " + accNum + " not found");
