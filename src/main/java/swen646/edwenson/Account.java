@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
@@ -40,11 +41,13 @@ public class Account {
     public void addReservation(ArrayList<Reservation> reservs) {
         reservation = Objects.isNull(reservation) ? new ArrayList<>() : reservation;
         reservation.addAll(reservs);
+        reservations.addAll(reservs.stream().map(Reservation::getResvNum).collect(Collectors.toSet()));
     }
 
     public void addReservation(Reservation resv) {
         reservation = Objects.isNull(reservation) ? new ArrayList<>() : reservation;
         reservation.add(resv);
+        reservations.add(resv.getResvNum());
     }
 
     public String getAccNum() {

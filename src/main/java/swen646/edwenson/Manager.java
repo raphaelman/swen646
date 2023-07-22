@@ -69,7 +69,7 @@ public class Manager {
 
     private int dynamicMenuIntEntry(List<String> menuOptions, int... expected) {
         Scanner userInput = new Scanner(System.in);
-        int userEntry = -1;
+        int userEntry;
         boolean validEntry = false;
         do {
             menuOptions.forEach(System.out::println);
@@ -228,7 +228,8 @@ public class Manager {
             newAccountFolder = Files.createDirectories(newAccountFolder);
             addAccount(account);
             saveAccountToFile(account, newAccountFolder);
-            System.out.println("Account successfully created!\nAccount Number:" + account.getAccNum());
+            System.out.println("Account successfully created!");
+            System.out.println(mapper.writeValueAsString(account));
             System.out.println("\nType 0 - To display the main menu");
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -315,7 +316,8 @@ public class Manager {
                     throw new RuntimeException(e);
                 }
             });
-            System.out.println("Account successfully updated!\nAccount Number:" + accNum);
+            System.out.println("Account successfully updated!");
+            System.out.println(mapper.writeValueAsString(acc));
         } catch (IOException | RuntimeException e) {
             System.out.println("Account file was not updated due to exception below");
             e.printStackTrace();
@@ -454,7 +456,7 @@ public class Manager {
         }
         Reservation msgResv = hResv == null ? hoResv == null ? cResv : hoResv : hResv;
         System.out.println("Reservation with number:> " + msgResv.getResvNum() +
-                "\nSuccessfully created under the account:>" + msgResv.getAccNum());
+                "\nSuccessfully created under the account:> " + msgResv.getAccNum());
     }
 
     private Date collectCheckinDate() {
@@ -530,7 +532,7 @@ public class Manager {
 
     // /home/eraphael/study/data
 
-    public void displayReservation() throws IllegalLoadException, JsonProcessingException {
+    public void displayReservation() throws IllegalLoadException {
         String accNum = dynamicMenuStringEntry(
                 List.of("Please type account number that has the reservation to display\nEx: AXXXXXXXXX")
         );
@@ -572,7 +574,6 @@ public class Manager {
                 List.of("Please type account number that has the reservation to update\nEx: AXXXXXXXXX")
         );
         Optional<Account> acc = getAccountByNum(accNum);
-        Reservation res = null;
         if (acc.isPresent()) {
             System.out.println("Here is the list of reservation number found:");
             acc.get().getReservation().forEach(r -> System.out.println("-> " + r.getResvNum()));
@@ -605,7 +606,6 @@ public class Manager {
                 List.of("Please type account number that has the reservation to update\nEx: AXXXXXXXXX")
         );
         Optional<Account> acc = getAccountByNum(accNum);
-        Reservation res = null;
         if (acc.isPresent()) {
             System.out.println("Here is the list of reservation number found:");
             acc.get().getReservation().forEach(r -> System.out.println("-> " + r.getResvNum()));
