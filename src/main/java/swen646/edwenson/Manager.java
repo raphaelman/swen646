@@ -29,10 +29,6 @@ public class Manager {
         this.account = new ArrayList<>();
     }
 
-    public Manager(ArrayList<Account> account) {
-        this.account = account;
-    }
-
     private Account convertAcc(File accountFilePath) throws IOException {
         return mapper.readValue(accountFilePath, Account.class);
     }
@@ -165,7 +161,7 @@ public class Manager {
                     addReservation(retrieveReservation(p));
                     System.out.println("Done loading\n");
                 } catch (FileNotFoundException fnfe) {
-                    throw new IllegalLoadException("Account file " + p + "not found in the specified location", fnfe);
+                    System.out.println("Account file " + p + "not found in the specified location");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -180,7 +176,7 @@ public class Manager {
             addAccount(acc);
             addReservation(retrieveReservation(dataHome));
         } catch (FileNotFoundException fnfe) {
-            throw new IllegalLoadException("Account file " + dataHome + " not found in the specified location", fnfe);
+            System.out.println("Account file " + dataHome + " not found in the specified location");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -330,7 +326,7 @@ public class Manager {
      * @param acc       - Account to be saved
      * @param directory - Path location to save the account file
      */
-    public void saveAccountToFile(Account acc, Path directory) throws IOException {
+    private void saveAccountToFile(Account acc, Path directory) throws IOException {
         mapper.writeValue(new File(directory.toString(), "acc-" + acc.getAccNum() + ".json"), acc);
     }
 
@@ -505,7 +501,7 @@ public class Manager {
      *
      * @param reservation to be added
      */
-    public void addReservation(Reservation reservation) {
+    private void addReservation(Reservation reservation) {
         if (Objects.nonNull(reservation)) {
             if (findResvInAccount(reservation.getResvNum()).isEmpty()) {
                 getAccountByNum(reservation.getAccNum())
@@ -518,7 +514,7 @@ public class Manager {
         }
     }
 
-    public void addReservation(List<Reservation> reservation) {
+    private void addReservation(List<Reservation> reservation) {
         if (Objects.nonNull(reservation)) {
             reservation.forEach(this::addReservation);
         } else {
