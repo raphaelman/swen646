@@ -29,10 +29,27 @@ public class Manager {
         this.account = new ArrayList<>();
     }
 
+    /**
+     * This private method will parse the .json file into an Account object
+     * We are using Jackson ObjectMapper to parse the .json files
+     *
+     * @param accountFilePath file of the account to load in memory
+     * @return Account
+     * @throws IOException on file read error
+     */
     private Account convertAcc(File accountFilePath) throws IOException {
         return mapper.readValue(accountFilePath, Account.class);
     }
 
+    /**
+     * This private method will parse all reservation files found in path
+     * into a list of reservations
+     * We are using Jackson ObjectMapper to parse the .json files
+     *
+     * @param path of the reservations
+     * @return List<Reservation>
+     * @throws IOException when path not found for parsing
+     */
     private List<Reservation> retrieveReservation(Path path) throws IOException {
         List<Reservation> resv = new ArrayList<>();
         List<Path> reservData = Files.list(path).filter(p -> p.getFileName().toString().startsWith("res-") &&
@@ -57,12 +74,25 @@ public class Manager {
         return resv;
     }
 
+    /**
+     * This private method is used to display options and retrieve user input as String
+     * @param menuOptions to display to users
+     * @return String
+     */
     private String dynamicMenuStringEntry(List<String> menuOptions) {
         Scanner userInput = new Scanner(System.in);
         menuOptions.forEach(System.out::println);
         return userInput.nextLine();
     }
 
+    /**
+     * This private method is used to display options and retrieve user input as integer
+     * We loop the prompt when user does not provide an expected entry from the array of expected int
+     *
+     * @param menuOptions to display to users
+     * @param expected range of input expected from user
+     * @return int
+     */
     private int dynamicMenuIntEntry(List<String> menuOptions, int... expected) {
         Scanner userInput = new Scanner(System.in);
         int userEntry;
@@ -81,16 +111,24 @@ public class Manager {
     }
 
     /**
-     * This method will load and create objects from data stored in files
+     * This is the main method to load and create objects from data stored in files
      */
     public void loadAccAndResv() throws IOException {
         String dataLocation = retrieveDataLocation();
 
         loadDataFromFile(dataLocation);
+        mainMenu();
     }
 
+    /**
+     * This private method will prompt entry of main data location folder
+     * It uses a map to cache the path and ask user
+     * if they with to use the same path found from memory if there is one
+     *
+     * @return String
+     */
     private String retrieveDataLocation() {
-        String dataLocation = "";
+        String dataLocation;
         if (!CACHE.getOrDefault("data_location", "").isEmpty()) {
             int option = dynamicMenuIntEntry(Arrays.asList(
                     "A previous location:" + CACHE.get("data_location"),
@@ -109,6 +147,7 @@ public class Manager {
         return dataLocation;
     }
 
+    // Private method to prevent repeating retrieval and storing of data path in cache
     private String getDataLocationEntry() {
         String dataLocation;
         dataLocation = dynamicMenuStringEntry(
@@ -171,10 +210,11 @@ public class Manager {
 
     private void loadSingleAccount(Path dataHome, String accNumber) {
         try {
-            Account acc = convertAcc(new File(Path.of(dataHome.toString(), accNumber).toString(), "acc-" + accNumber + ".json"));
+            Path accPath = Path.of(dataHome.toString(), accNumber);
+            Account acc = convertAcc(new File(accPath.toString(), "acc-" + accNumber + ".json"));
             System.out.println(acc);
             addAccount(acc);
-            addReservation(retrieveReservation(dataHome));
+            addReservation(retrieveReservation(accPath));
         } catch (FileNotFoundException fnfe) {
             System.out.println("Account file " + dataHome + " not found in the specified location");
         } catch (IOException e) {
@@ -182,12 +222,15 @@ public class Manager {
         }
     }
 
+    /**
+     * This is the main method to initiate creation of an account
+     */
     public void createAccount() {
         String accAddress = dynamicMenuStringEntry(
                 List.of("Please type account owner address")
         );
 
-        String email = "";
+        String email;
         do {
             email = dynamicMenuStringEntry(
                     List.of("Please type email address")
@@ -197,7 +240,7 @@ public class Manager {
             }
         } while (!email.matches(".*@.*\\..*"));
 
-        String phone = "";
+        String phone;
         do {
             phone = dynamicMenuStringEntry(
                     List.of("Please type phone number\nTYPE 10 DIGITS ONLY")
@@ -230,6 +273,7 @@ public class Manager {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        mainMenu();
     }
 
     private Optional<String> checkAccNumberAndLocation(String accNumber, String dataLocation) {
@@ -246,16 +290,8 @@ public class Manager {
     }
 
     /**
-     * This method will Get the list of loaded accounts from Manager
-     *
-     * @return ArrayList<Account>
-     */
-    public ArrayList<Account> getAccount() {
-        return this.account;
-    }
-
-    /**
-     * This method is allowing user to retrieve account objects by account number.
+     * This method is allowing user to retrieve account objects by account number
+     * From the accounts in the Manager(In memory).
      *
      * @param accNum the number of the account to be retrieved
      * @return Optional<Account>
@@ -270,6 +306,7 @@ public class Manager {
      *
      * @param account Account object to be added
      * @throws DuplicateObjectException when account with the same accNumber exists in the system
+     * @throws IllegalStateException when account is not provided (In that case not generated and/or set to the account)
      */
     public void addAccount(Account account) throws DuplicateObjectException, IllegalStateException {
         if (Objects.nonNull(account)) {
@@ -285,7 +322,8 @@ public class Manager {
     }
 
     /**
-     * This method will allow to save/update account data into files using account numbers
+     * This method will allow to save/update account and reservation data into files using account numbers
+     * The action only happens for one account at a time, the specified account number.
      */
     public void updateAccToFile() {
         String dataLocation = retrieveDataLocation();
@@ -312,7 +350,7 @@ public class Manager {
                     throw new RuntimeException(e);
                 }
             });
-            System.out.println("Account successfully updated!");
+            System.out.println("Account successfully updated to file!");
             System.out.println(mapper.writeValueAsString(acc));
         } catch (IOException | RuntimeException e) {
             System.out.println("Account file was not updated due to exception below");
@@ -321,7 +359,8 @@ public class Manager {
     }
 
     /**
-     * This method will allow to save or update account data into files using account numbers
+     * This private method will save object into .json file
+     * We use Jackson ObjectMapper for that
      *
      * @param acc       - Account to be saved
      * @param directory - Path location to save the account file
@@ -330,7 +369,25 @@ public class Manager {
         mapper.writeValue(new File(directory.toString(), "acc-" + acc.getAccNum() + ".json"), acc);
     }
 
-    public void createReservation() {
+    /**
+     * This is a private method to save reservation object to .json file
+     * I use Jackson ObjectMapper for that
+     *
+     * @param resv object to save into json
+     * @param directory location to create the file
+     * @throws IOException on File error
+     */
+    private void saveResToFile(Reservation resv, Path directory) throws IOException {
+        mapper.writeValue(new File(directory.toString(), resv.getResvNum() + ".json"), resv);
+    }
+
+
+    /**
+     * This method initiates the creation of reservation for an account
+     *
+     * @throws IOException Specially when file not found
+     */
+    public void createReservation() throws IOException {
         String dataLocation = retrieveDataLocation();
 
         String accNum = dynamicMenuStringEntry(
@@ -359,7 +416,7 @@ public class Manager {
                 "1 => Yes",
                 "2 => No"), 1, 2
         );
-        String lodgingMailingAddress = "";
+        String lodgingMailingAddress;
         if (sameAddrOption == 1) {
             lodgingMailingAddress = lodgingAddress;
         } else {
@@ -380,15 +437,14 @@ public class Manager {
             try {
                 String resNum = String.valueOf(Math.random()).substring(4, 14);
                 if (typeOfResv == 1)
-                    resNum = "H" + resNum;
+                    resNum = "res-H" + resNum;
                 else if (typeOfResv == 2)
-                    resNum = "O" + resNum;
+                    resNum = "res-O" + resNum;
                 else if (typeOfResv == 3)
-                    resNum = "C" + resNum;
+                    resNum = "res-C" + resNum;
                 System.out.println("Generated reservation Number :> " + resNum);
 
-                Optional<String> reservation = findResvNumberInAccount(resNum);
-                if (reservation.isEmpty()) {
+                if (findResvInAccount(resNum).orElseThrow().getResvNum().isEmpty()) {
                     resvNumber = Optional.of(resNum);
                 } else {
                     throw new DuplicateObjectException("Reservation number: " + resNum + " already exists");
@@ -450,9 +506,11 @@ public class Manager {
                 ioe.printStackTrace();
             }
         }
+        saveAccountToFile(getAccountByNum(accNum).orElseThrow(), newAccountFolder);
         Reservation msgResv = hResv == null ? hoResv == null ? cResv : hoResv : hResv;
-        System.out.println("Reservation with number:> " + msgResv.getResvNum() +
-                "\nSuccessfully created under the account:> " + msgResv.getAccNum());
+        System.out.println("Reservation Successfully created under the account ");
+        System.out.println(mapper.writeValueAsString(msgResv));
+        mainMenu();
     }
 
     private Date collectCheckinDate() {
@@ -475,14 +533,6 @@ public class Manager {
         return checkIn;
     }
 
-    private Optional<String> findResvNumberInAccount(String resvNumber) {
-        return this.account.stream()
-                .flatMap(a ->
-                        a.getReservations().stream()
-                                .filter(rn -> rn.equalsIgnoreCase(resvNumber))
-                ).findFirst();
-    }
-
     private Optional<Reservation> findResvInAccount(String resvNumber) {
         return this.account.stream()
                 .flatMap(a -> {
@@ -497,7 +547,7 @@ public class Manager {
     }
 
     /**
-     * This method will add a new reservation to the list in the related account object
+     * This private method is used to add a new reservation to the list in the related account object
      *
      * @param reservation to be added
      */
@@ -514,6 +564,11 @@ public class Manager {
         }
     }
 
+    /**
+     * This private method adds a list of reservation to an account
+     *
+     * @param reservation list of reservation to add to the account
+     */
     private void addReservation(List<Reservation> reservation) {
         if (Objects.nonNull(reservation)) {
             reservation.forEach(this::addReservation);
@@ -522,12 +577,13 @@ public class Manager {
         }
     }
 
-    private void saveResToFile(Reservation resv, Path directory) throws IOException {
-        mapper.writeValue(new File(directory.toString(), "res-" + resv.getResvNum() + ".json"), resv);
-    }
-
     // /home/eraphael/study/data
 
+    /**
+     * That is the main method to display a reservation
+     *
+     * @throws IllegalLoadException for wrong account number of reservation number
+     */
     public void displayReservation() throws IllegalLoadException {
         String accNum = dynamicMenuStringEntry(
                 List.of("Please type account number that has the reservation to display\nEx: AXXXXXXXXX")
@@ -540,21 +596,16 @@ public class Manager {
             String resvNum = dynamicMenuStringEntry(
                     List.of("\nPlease type reservation number to display")
             );
-            List<Reservation> res = acc.get().getReservation()
+            Reservation res = acc.get().getReservation()
                     .stream()
                     .filter(r -> r.getResvNum().equalsIgnoreCase(resvNum))
-                    .collect(Collectors.toList());
-            if (!res.isEmpty()) {
-                res.forEach(r -> {
-                    try {
-                        System.out.println(mapper.writeValueAsString(r));
-                    } catch (JsonProcessingException e) {
-                        System.out.println("Unable to print reservation");
-                        e.printStackTrace();
-                    }
-                });
-            } else {
-                throw new IllegalLoadException("No reservation found with that number :=> " + resvNum);
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalLoadException("No reservation found with that number :=> " + resvNum));
+            try {
+                System.out.println(mapper.writeValueAsString(res));
+            } catch (JsonProcessingException e) {
+                System.out.println("Unable to print reservation");
+                e.printStackTrace();
             }
         } else {
             throw new IllegalLoadException("Account with number: " + accNum + " not found");
@@ -591,7 +642,8 @@ public class Manager {
 
 
     /**
-     * This method will help to update a reservation like complete it or cancel it
+     * This method will help to update a reservation like complete it or cancel it,
+     * It can be used to update check-in data and length of stay
      * The reservation will be also updated on the list
      *
      * @throws IllegalOperationException on unauthorized action on existed reservation found from accounts in manager
@@ -662,5 +714,18 @@ public class Manager {
         } else {
             throw new IllegalLoadException("Account with number: " + accNum + " not found");
         }
+    }
+
+    public static void mainMenu() {
+        System.out.println("\n\nOPTIONS");
+        System.out.println("0 - Display the main Menu\nWhen you are done with a function");
+        System.out.println("1 - Load Data from file");
+        System.out.println("2 - Create a new Account");
+        System.out.println("3 - Make a reservation");
+        System.out.println("4 - Update Account to file");
+        System.out.println("5 - Update a reservation");
+        System.out.println("6 - Request a reservation price per night");
+        System.out.println("7 - Display Reservation");
+        System.out.println("9 - Terminate Program");
     }
 }

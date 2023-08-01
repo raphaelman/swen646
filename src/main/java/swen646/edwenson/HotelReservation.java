@@ -1,11 +1,13 @@
 package swen646.edwenson;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Date;
 
 public class HotelReservation extends Reservation {
     private Boolean hasKitchenette;
+    private static final double KITCHENETTE_PRICE = 10.0;
+    private static final double HOTEL_ADD_PRICE = 50.0;
+    private static final double PRICE_ZERO = 0.0;
 
     public HotelReservation() { super();}
     
@@ -21,8 +23,8 @@ public class HotelReservation extends Reservation {
      */
     public void updatePrice() {
         super.basePrice();
-        double kitchenettePrice = hasKitchenette ? 10.0 : 0.0;
-        super.setPrice(super.getPrice() + 50.0 + kitchenettePrice);
+        double kitchenettePrice = hasKitchenette ? KITCHENETTE_PRICE : PRICE_ZERO;
+        super.setPrice(super.getPrice() + HOTEL_ADD_PRICE + kitchenettePrice);
     }
 
     public Boolean getHasKitchenette() {

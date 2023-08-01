@@ -7,6 +7,12 @@ public class Reservation {
     public static final String COMPLETED = "completed";
     public static final String DRAFT = "draft";
     public static final String CANCELLED = "cancelled";
+    private static final Integer DEF_BED_QTY = 2;
+    private static final Integer DEF_BEDROOM_QTY = 1;
+    private static final Integer DEF_BATH_QTY = 1;
+    private static final Double BASE_PRICE = 120.0;
+    private static final Double ADDTNL_LODG_PRICE = 15.0;
+    private static final Integer MIN_SQ_FEET = 900;
     private String accNum;
     private String resvNum;
     private String physicalAddr;
@@ -29,9 +35,9 @@ public class Reservation {
         this.mailingAddr = mailingAddr;
         this.checkInDate = checkInDate;
         this.lengthOfStay = lengthOfStay;
-        this.bedQty = bedQty < 2 ? 2 : bedQty;
-        this.bedroomQty = bedroomQty < 1 ? 1: bedroomQty;
-        this.bathQty = bathQty < 1 ? 1 : bathQty;
+        this.bedQty = bedQty < DEF_BED_QTY ? DEF_BED_QTY : bedQty;
+        this.bedroomQty = bedroomQty < DEF_BEDROOM_QTY ? DEF_BEDROOM_QTY: bedroomQty;
+        this.bathQty = bathQty < DEF_BATH_QTY ? DEF_BATH_QTY : bathQty;
         this.sqFeet = sqFeet;
         this.status = status;
     }
@@ -41,8 +47,7 @@ public class Reservation {
      * It will use the base price of $120  and possible charge for larger than 900 sqFeet lodging
      */
     public void basePrice() {
-        double basePrice = 120.0;
-        this.price = sqFeet > 900 ? (basePrice + 15.0) * lengthOfStay : basePrice * lengthOfStay;
+        this.price = sqFeet > MIN_SQ_FEET ? (BASE_PRICE + ADDTNL_LODG_PRICE) * lengthOfStay : BASE_PRICE * lengthOfStay;
     }
 
     public String getAccNum() {

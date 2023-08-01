@@ -29,7 +29,6 @@ public class HouseReservation extends Reservation {
         this.floorQty = floorQty;
     }
 
-    @Override
     public String toString() {
         return "{\"Reservation\":" + super.toString() +
                 ",\"floorQty\":\"" + this.floorQty + "\"}";
