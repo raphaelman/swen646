@@ -149,8 +149,7 @@ public class Manager {
 
     // Private method to prevent repeating retrieval and storing of data path in cache
     private String getDataLocationEntry() {
-        String dataLocation;
-        dataLocation = dynamicMenuStringEntry(
+        String dataLocation = dynamicMenuStringEntry(
                 List.of("Please provide Account Data path")
         );
         CACHE.put("data_location", dataLocation);
@@ -215,6 +214,7 @@ public class Manager {
             System.out.println(acc);
             addAccount(acc);
             addReservation(retrieveReservation(accPath));
+            System.out.println("Done loading\n");
         } catch (FileNotFoundException fnfe) {
             System.out.println("Account file " + dataHome + " not found in the specified location");
         } catch (IOException e) {
@@ -444,7 +444,7 @@ public class Manager {
                     resNum = "res-C" + resNum;
                 System.out.println("Generated reservation Number :> " + resNum);
 
-                if (findResvInAccount(resNum).orElseThrow().getResvNum().isEmpty()) {
+                if (findResvInAccount(resNum).isEmpty()) {
                     resvNumber = Optional.of(resNum);
                 } else {
                     throw new DuplicateObjectException("Reservation number: " + resNum + " already exists");

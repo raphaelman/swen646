@@ -26,6 +26,8 @@ public class Account {
         this.email = email;
         this.phone = phone;
         this.reservation = reservation;
+        this.reservations.addAll(this.reservation.stream().map(Reservation::getResvNum)
+                .collect(Collectors.toSet()));
     }
 
     public Account() {

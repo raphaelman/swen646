@@ -7,7 +7,7 @@ public class CabinReservation extends Reservation {
     private Boolean hasLoft;
 
     private static final double KITCHEN_PRICE = 20.0;
-    private static final double EXTRA_ROOM_PRICE = 5.0;
+    private static final double EXTRA_BATHROOM_PRICE = 5.0;
 
 
     public CabinReservation() {
@@ -27,8 +27,8 @@ public class CabinReservation extends Reservation {
      */
     public void updatePrice() {
         super.basePrice();
-        double addRoomPrice = (super.getBedroomQty() -1) * EXTRA_ROOM_PRICE;
-        super.setPrice(super.getPrice() + KITCHEN_PRICE + addRoomPrice);
+        double addBathRoomPrice = (super.getBathQty() -1) * EXTRA_BATHROOM_PRICE;
+        super.setPrice(super.getPrice() + KITCHEN_PRICE + addBathRoomPrice);
     }
 
     public Boolean getHasLoft() {
